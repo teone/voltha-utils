@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""
+Remove the color coding from the ONOS logs for improved readability
+
+Add this this script to you $PATH for simple use
+
+Usage: onos-log-cleaner --filename onos.log
+"""
+import argparse
+import os
+import re
+
+
+def escape_ansi(line):
+    ansi_escape =re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
+    return ansi_escape.sub('', line)
+
+
+def main(filename, dir):
+
+    file = os.path.join(dir, filename)
+    newFile = os.path.join(dir, filename + ".clean")
+
+    fileHandler = open(file, 'r', encoding="utf-8")
+    lines = fileHandler.readlines()
+
+    newFileHandler = open(newFile, 'w')
+
+    for line in lines:
+        l = escape_ansi(line)
+        newFileHandler.write(l)
+
+    fileHandler.close()
+    newFileHandler.close()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--filename', type=str, required=True)
+
+    args = parser.parse_args()
+    main(args.filename, os.getcwd())
+

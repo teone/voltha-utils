@@ -1,0 +1,33 @@
+global:
+  stack_name: voltha1
+  voltha_infra_name: voltha-infra
+  voltha_infra_namespace: infra
+  log_level: DEBUG
+  image_tag: master
+  image_pullPolicy: "Always"
+etcd:
+  ingress:
+    enabled: false
+  statefulset:
+    replicaCount: 1
+voltha:
+  images:
+    rw_core:
+      repository: matteoscandolo/voltha-rw-core
+      tag: tmp
+  replicas:
+    ofagent: 0
+  onos_classic:
+    replicas: 1
+  securityContext:
+    enabled: false
+  ingress:
+    enabled: true
+    enableVirtualHosts: true
+  fullHostnameOverride: voltha.tedx.dev
+
+onu: 1
+pon: 1
+
+onos-classic:
+  enabled: false

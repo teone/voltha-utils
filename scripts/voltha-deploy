@@ -1,0 +1,74 @@
+#!/bin/bash
+
+workflow="att"
+value_file="$(realpath -s $(pwd)/configs/values/dev-values.yaml)"
+helm_charts_path="$(realpath -s $(pwd)/../voltha-helm-charts)"
+
+while getopts w:f:h: flag
+do
+    case "${flag}" in
+        w) workflow=${OPTARG};;
+        f) value_file=${OPTARG};;
+	h) echo "-w to specify the workflow (att|dt|tt)" && exit 1;;
+    esac
+done
+
+
+echo -e "Deploying ${workflow} workflow with value file ${value_file}"
+
+echo -e "Teardown:\n"
+helm del -n default voltha bbsim0
+helm del -n default voltha-infra
+
+echo -ne "\nWaiting for ONOS to be removed..."
+onos=$(kubectl get pod -n default -l app=onos-classic --no-headers | wc -l)
+while [[ $onos != 0 ]]; do
+  onos=$(kubectl get pod -n default -l app=onos-classic --no-headers | wc -l)
+  sleep 5
+  echo -ne "."
+done
+
+echo -e "Install nginx ingress controller:\n"
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=90s
+
+echo -e "Install voltha infra:\n"
+helm dep update ${helm_charts_path}/voltha-infra
+helm upgrade --install --create-namespace -n default voltha-infra ${helm_charts_path}/voltha-infra -f ${helm_charts_path}/examples/${workflow}-values.yaml \
+  -f ${value_file}
+
+echo -ne "\nWaiting for Jaeger to start... (if any)"
+jaeger=$(kubectl get pods --all-namespaces -l app=jaeger --no-headers | grep "0/" | wc -l)
+while [[ $jaeger != 0 ]]; do
+  jaeger=$(kubectl get pods --all-namespaces -l app=jaeger --no-headers | grep "0/" | wc -l)
+  sleep 5
+  echo -ne "."
+done
+
+echo -e "\nInstall voltha stack:\n"
+helm dep update ${helm_charts_path}/voltha-stack
+helm upgrade --install --create-namespace   -n default voltha ${helm_charts_path}/voltha-stack -f ${value_file}
+
+helm upgrade --install -n default bbsim0 ${helm_charts_path}/bbsim --set olt_id=10 -f ${helm_charts_path}/examples/${workflow}-values.yaml -f ${value_file}
+
+echo -ne "\nWait for ONOS Config loader to complete..."
+config=$(kubectl get pods -l app=onos-config-loader --no-headers --field-selector=status.phase=Running | grep "0/" | wc -l)
+while [[ $config != 0 ]]; do
+  sleep 5
+  config=$(kubectl get pods -l app=onos-config-loader --no-headers --field-selector=status.phase=Running | grep "0/" | wc -l)
+done
+
+echo -ne "\nWaiting for VOLTHA to start..."
+voltha=$(kubectl get pods --all-namespaces -l app.kubernetes.io/part-of=voltha --no-headers | grep "0/" | wc -l)
+while [[ $voltha != 0 ]]; do
+  voltha=$(kubectl get pods --all-namespaces -l app.kubernetes.io/part-of=voltha --no-headers | grep "0/" | wc -l)
+  sleep 5
+  echo -ne "."
+done
+echo "Thanks for installing VOLTHA"
+
+sshpass -p karaf ssh -p 30115 -o userknownhostsfile=/dev/null -o stricthostkeychecking=no karaf@localhost log:set TRACE org.opencord.olt

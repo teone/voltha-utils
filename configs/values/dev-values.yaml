@@ -1,0 +1,120 @@
+global:
+  stack_name: voltha
+  voltha_infra_name: voltha-infra
+  voltha_infra_namespace: default
+  log_level: DEBUG
+  image_tag: master
+  image_pullPolicy: "Always"
+  # image_registry: mirror.registry.opennetworking.org/
+ # tracing:
+ #   enabled: true
+  max_timeout_reconciling: "60s"
+# voltha-tracing:
+#  enabled: true
+#efk:
+#  enabled: true
+# freeradius:
+#   images:
+#     radius:
+#       registry: mirror.registry.menlo.onlab.us/
+# kafka:
+#   image:
+#     registry: mirror.registry.menlo.onlab.us
+#   zookeper:
+#     image:
+#       registry: mirror.registry.menlo.onlab.us
+etcd:
+  # image:
+  #   registry: mirror.registry.menlo.onlab.us
+  ingress:
+    enabled: false
+  statefulset:
+    replicaCount: 1
+voltha:
+  onos_classic:
+    replicas: 1
+  securityContext:
+    enabled: false
+  ingress:
+    enabled: true
+    enableVirtualHosts: true
+  fullHostnameOverride: voltha.tedx.dev
+  images:
+  #   rw_core:
+  #     repository: matteoscandolo/voltha-rw-core
+  #     tag: grpc
+   ofagent:
+     repository: matteoscandolo/voltha-ofagent-go
+     tag: tmp
+# voltha-adapter-openolt:
+#   images:
+#     adapter_open_olt:
+#       repository: matteoscandolo/voltha-openolt-adapter
+#       tag: grpc
+voltha-adapter-openonu:
+  adapter_open_onu:
+  #   omci_timeout: 1s
+  #  uni_port_mask: 0x00FF
+ # images:
+ #   adapter_open_onu_go:
+ #     repository: matteoscandolo/voltha-openonu-adapter-go
+ #     tag: grpc
+bbsim-sadis-server:
+  images:
+    bbsim_sadis_server:
+      repository: matteoscandolo/bbsim-sadis-server
+      tag: tmp
+
+images:
+  bbsim:
+    repository: matteoscandolo/bbsim
+    tag: tmp
+onu: 16
+pon: 16
+omci_response_rate: 10
+#log_level: trace
+oltRebootDelay: 5 #remove me if running reboot/disconnect tests
+injectOmciUnknownMe: true
+injectOmciUnknownAttributes: true
+
+onos-classic:
+  replicas: 1
+  atomix:
+    replicas: 0
+    # image:
+    #   repository: mirror.registry.menlo.onlab.us/atomix/atomix
+  image:
+    # repository: mirror.registry.menlo.onlab.us/matteoscandolo/voltha-onos
+    repository: matteoscandolo/voltha-onos
+    tag: oltapp
+    # tag: master
+  onosSshPort: 30115
+  onosApiPort: 30120
+  ports:
+    - name: openflow
+      port: 6653
+    - name: ovsdb
+      port: 6640
+    - name: east-west
+      port: 9876
+    - name: cli
+      port: 8101
+    - name: ui
+      port: 8181
+    - name: debugger
+      port: 5005
+  apps:
+    - org.onosproject.lldpprovider
+    - org.onosproject.openflow-base
+    - org.onosproject.gui2
+    - org.onosproject.drivers
+    - org.opencord.sadis
+  java_opts: >
+    -XX:+UseG1GC
+    -XX:MaxGCPauseMillis=200
+    -XX:-UseContainerSupport
+    -Dkaraf.log.console=INFO
+    -Dds.lock.timeout.milliseconds=10000
+    -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005
+  config:
+    reconcile_mode: true
