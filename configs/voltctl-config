@@ -1,0 +1,36 @@
+# copy me in ~/.volt/config to make me the default
+apiVersion: v3
+stacks:
+- name: default
+  server: voltha.tedx.dev:443
+  kafka: localhost:9092
+  kvstore: localhost:2379
+  tls:
+    useTLS: true
+    caCert: ""
+    cert: ""
+    key: ""
+    verify: false
+  grpc:
+    connectTimeout: 5s
+    timeout: 5m0s
+    maxCallRecvMsgSize: 4M
+  kvstoreconfig:
+    timeout: 5s
+- name: local
+  server: localhost:55555
+  kafka: localhost:9093
+  kvstore: localhost:2379
+  tls:
+    useTLS: false
+    caCert: ""
+    cert: ""
+    key: ""
+    verify: false
+  grpc:
+    connectTimeout: 5s
+    timeout: 5m0s
+    maxCallRecvMsgSize: 4M
+  kvstoreconfig:
+    timeout: 5s
+currentStack: default
